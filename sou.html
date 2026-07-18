@@ -1,0 +1,607 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+  <title>sourav.cal (mobile)</title>
+
+  <style>
+    :root{
+      --bg0:#050914;
+      --bg1:#06122f;
+      --card: rgba(10,14,30,.62);
+      --stroke: rgba(255,255,255,.14);
+      --text: rgba(255,255,255,.92);
+      --muted: rgba(255,255,255,.64);
+      --accent:#4da3ff;
+      --danger:#ff4d6d;
+      --good:#49f2a4;
+      --shadow: 0 24px 85px rgba(0,0,0,.60);
+      --radius: 18px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      --sans: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    }
+
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      font-family: var(--sans);
+      color: var(--text);
+      overflow:hidden;
+      background:
+        radial-gradient(1200px 700px at 25% 18%, rgba(77,163,255,.18), transparent 60%),
+        radial-gradient(900px 650px at 75% 25%, rgba(155,220,255,.08), transparent 62%),
+        linear-gradient(180deg, var(--bg1), var(--bg0));
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* ===== Light animated background (mobile optimized) ===== */
+    .stage{
+      position:fixed; inset:0;
+      z-index:-10;
+      overflow:hidden;
+      pointer-events:none;
+    }
+    .parallax{
+      position:absolute; inset:-3%;
+      transform: translate3d(0,0,0);
+      will-change: transform;
+      transition: transform .10s ease;
+    }
+
+    .wash{
+      position:absolute; inset:-40px;
+      background:
+        radial-gradient(900px 560px at 20% 30%, rgba(77,163,255,.26), transparent 64%),
+        radial-gradient(1000px 650px at 80% 30%, rgba(155,220,255,.12), transparent 68%),
+        radial-gradient(900px 700px at 50% 120%, rgba(0,0,0,.72), transparent 70%);
+      mix-blend-mode: screen;
+      opacity:.92;
+    }
+    .grid{
+      position:absolute; inset:-60px;
+      background:
+        repeating-linear-gradient(90deg, rgba(255,255,255,.05) 0 1px, transparent 1px 28px),
+        repeating-linear-gradient(0deg, rgba(255,255,255,.035) 0 1px, transparent 1px 28px);
+      opacity:.12;
+    }
+
+    /* Optional images (if not present, just ignored by browser) */
+    .img{
+      position:absolute; inset:-2%;
+      background-size: cover;
+      background-position:center;
+      transform: scale(1.06);
+      filter: saturate(1.08) contrast(1.05) brightness(.95);
+      opacity:.14;
+    }
+    .img.left{
+      background-image: url("assets/naruto.jpg");
+      -webkit-mask-image: radial-gradient(circle at 30% 58%, #000 0 45%, transparent 72%);
+      mask-image: radial-gradient(circle at 30% 58%, #000 0 45%, transparent 72%);
+      animation: driftL 10s ease-in-out infinite;
+    }
+    .img.right{
+      background-image: url("assets/gojo.jpg");
+      -webkit-mask-image: radial-gradient(circle at 76% 56%, #000 0 48%, transparent 76%);
+      mask-image: radial-gradient(circle at 76% 56%, #000 0 48%, transparent 76%);
+      opacity:.12;
+      animation: driftR 12s ease-in-out infinite;
+    }
+    @keyframes driftL{
+      0%,100%{ transform: translate3d(-10px, 6px, 0) scale(1.06); }
+      50%{ transform: translate3d(10px, -8px, 0) scale(1.09); }
+    }
+    @keyframes driftR{
+      0%,100%{ transform: translate3d(10px, 8px, 0) scale(1.06); }
+      50%{ transform: translate3d(-10px, -10px, 0) scale(1.10); }
+    }
+
+    /* rain + sparks (lighter) */
+    .rain{ position:absolute; inset:0; opacity:.16; }
+    .drop{
+      position:absolute; width:2px; height:80px;
+      background: linear-gradient(180deg, transparent, rgba(155,220,255,.55), transparent);
+      transform: translateY(-160px);
+      animation: rain linear infinite;
+    }
+    @keyframes rain{ to{ transform: translateY(calc(100vh + 260px)); } }
+
+    .sparks{ position:absolute; inset:0; }
+    .spark{
+      position:absolute;
+      width: 4px; height:4px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.70);
+      filter: drop-shadow(0 0 10px rgba(77,163,255,.32));
+      opacity:0;
+      animation: sparkUp linear infinite;
+    }
+    @keyframes sparkUp{
+      0%{ transform: translate3d(var(--dx,0px), 30vh, 0) scale(.8); opacity:0; }
+      15%{ opacity:.40; }
+      100%{ transform: translate3d(var(--dx,0px), -125vh, 0) scale(1.35); opacity:0; }
+    }
+
+    /* ===== Mobile App UI ===== */
+    .app{
+      height:100%;
+      padding:
+        max(12px, env(safe-area-inset-top))
+        max(12px, env(safe-area-inset-right))
+        max(12px, env(safe-area-inset-bottom))
+        max(12px, env(safe-area-inset-left));
+      display:grid;
+      grid-template-rows: auto auto 1fr auto;
+      gap: 10px;
+    }
+
+    .topbar{
+      display:flex; justify-content:space-between; align-items:center;
+      gap:10px;
+      padding: 12px;
+      border:1px solid var(--stroke);
+      border-radius: 18px;
+      background: rgba(255,255,255,.06);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+    .brand{ display:flex; align-items:center; gap:10px; min-width:0; }
+    .logo{
+      width:42px; height:42px; border-radius: 16px;
+      display:grid; place-items:center;
+      font-weight: 900;
+      background: linear-gradient(135deg, rgba(77,163,255,.85), rgba(77,163,255,.18));
+      border:1px solid rgba(255,255,255,.14);
+      flex:0 0 auto;
+      text-transform:lowercase;
+    }
+    .bt{ min-width:0; }
+    .title{ font-weight:950; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .sub{ color: var(--muted); font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+    .btnRow{ display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+    .btn{
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.16);
+      color: var(--text);
+      padding: 9px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      cursor:pointer;
+      user-select:none;
+    }
+    .btn.primary{ border-color: rgba(77,163,255,.35); background: rgba(77,163,255,.14); }
+    .btn.danger{ border-color: rgba(255,77,109,.35); background: rgba(255,77,109,.14); }
+
+    .screen{
+      border:1px solid var(--stroke);
+      border-radius: var(--radius);
+      background: var(--card);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+      overflow:hidden;
+    }
+    .status{
+      display:flex; gap:8px; flex-wrap:wrap;
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.14);
+    }
+    .badge{
+      font-size:12px;
+      color: var(--muted);
+      border: 1px solid rgba(255,255,255,.12);
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.04);
+    }
+    .badge.on{ color:#cfe8ff; border-color: rgba(77,163,255,.28); background: rgba(77,163,255,.10); }
+
+    .io{ padding: 12px; display:grid; gap:10px; }
+    textarea{
+      width:100%;
+      min-height: 62px;
+      resize:none;
+      border-radius: 14px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.22);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 15px;
+      padding: 10px 12px;
+      outline:none;
+    }
+    .result{
+      border-radius: 14px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.30);
+      padding: 10px 12px;
+      font-family: var(--mono);
+      font-size: 18px;
+      font-weight: 800;
+      word-break: break-word;
+    }
+
+    /* compact keypad */
+    .kbd{
+      display:grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      padding: 12px;
+    }
+    .key{
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      padding: 14px 10px;        /* bigger touch */
+      cursor:pointer;
+      user-select:none;
+      font-weight: 900;
+      font-size: 15px;
+    }
+    .key.fn{ background: rgba(77,163,255,.12); }
+    .key.op{ background: rgba(255,255,255,.08); }
+    .key.eq{ background: linear-gradient(135deg, rgba(77,163,255,.85), rgba(77,163,255,.22)); border-color: rgba(77,163,255,.34); }
+    .key.bad{ background: rgba(255,77,109,.14); border-color: rgba(255,77,109,.30); }
+
+    /* bottom sheet tool */
+    .sheet{
+      position:fixed; left:0; right:0;
+      bottom:-100%;
+      z-index: 50;
+      padding:
+        12px
+        max(12px, env(safe-area-inset-right))
+        max(12px, env(safe-area-inset-bottom))
+        max(12px, env(safe-area-inset-left));
+      transition: bottom .22s ease;
+    }
+    .sheet.open{ bottom:0; }
+    .sheetCard{
+      border-radius: 22px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(8,12,24,.92);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(16px);
+      overflow:hidden;
+    }
+    .sheetHead{
+      display:flex; justify-content:space-between; align-items:center;
+      padding: 12px;
+      border-bottom: 1px solid rgba(255,255,255,.10);
+    }
+    .sheetBody{
+      padding: 12px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height:1.35;
+      max-height: 48vh;
+      overflow:auto;
+    }
+
+    @media (prefers-reduced-motion: reduce){
+      *{ animation:none !important; transition:none !important; }
+      .parallax{ transition:none !important; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="stage">
+    <div class="parallax" id="parallax">
+      <div class="img left"></div>
+      <div class="img right"></div>
+      <div class="wash"></div>
+      <div class="grid"></div>
+      <div class="rain" id="rain"></div>
+      <div class="sparks" id="sparks"></div>
+    </div>
+  </div>
+
+  <main class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo">s</div>
+        <div class="bt">
+          <div class="title">sourav.cal</div>
+          <div class="sub">Mobile calculator • fast & touch-friendly</div>
+        </div>
+      </div>
+      <div class="btnRow">
+        <button class="btn" id="btnTool">Tool</button>
+        <button class="btn primary" id="btnStart">START</button>
+        <button class="btn danger" id="btnOff">OFF</button>
+      </div>
+    </header>
+
+    <section class="screen">
+      <div class="status">
+        <span class="badge on" id="bAngle">DEG</span>
+        <span class="badge" id="bShift">SHIFT: OFF</span>
+        <span class="badge" id="bAlpha">ALPHA: OFF</span>
+      </div>
+      <div class="io">
+        <textarea id="expr" placeholder="sin(30)+cos(60)"></textarea>
+        <div class="result" id="result">Press START</div>
+      </div>
+    </section>
+
+    <section class="screen" style="min-height:0;">
+      <div class="kbd" id="kbd"></div>
+    </section>
+
+    <div style="display:flex; justify-content:space-between; color:var(--muted); font-size:12px; padding:0 2px;">
+      <div>Enter = compute</div>
+      <div>Vars: x,y,z</div>
+    </div>
+  </main>
+
+  <!-- Tool sheet -->
+  <section class="sheet" id="sheet">
+    <div class="sheetCard">
+      <div class="sheetHead">
+        <b>Tool</b>
+        <button class="btn" id="btnClose">Close</button>
+      </div>
+      <div class="sheetBody">
+        <p><b>Angle</b></p>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="btn" id="btnDeg">DEG</button>
+          <button class="btn" id="btnRad">RAD</button>
+        </div>
+        <hr style="border:0;border-top:1px solid rgba(255,255,255,.10);margin:12px 0;">
+        <p><b>Set variables</b> (x,y,z)</p>
+        <button class="btn primary" id="btnVars">Set Vars</button>
+        <p style="margin-top:10px;">Examples: <code>sin(30)</code>, <code>pow(2,10)</code>, <code>log(100)</code></p>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    const $ = s => document.querySelector(s);
+
+    // FX
+    const parallax = $("#parallax");
+    const rain = $("#rain");
+    const sparks = $("#sparks");
+
+    function makeRain(n){
+      rain.innerHTML = "";
+      for(let i=0;i<n;i++){
+        const d = document.createElement("div");
+        d.className = "drop";
+        d.style.left = (Math.random()*100) + "%";
+        d.style.height = (55 + Math.random()*130) + "px";
+        const dur = 0.65 + Math.random()*1.0;
+        d.style.animationDuration = dur + "s";
+        d.style.animationDelay = (-Math.random()*dur) + "s";
+        d.style.opacity = (0.14 + Math.random()*0.22).toFixed(2);
+        rain.appendChild(d);
+      }
+    }
+    function makeSparks(n){
+      sparks.innerHTML = "";
+      for(let i=0;i<n;i++){
+        const s = document.createElement("div");
+        s.className = "spark";
+        s.style.left = (Math.random()*100) + "%";
+        const size = 3 + Math.random()*4;
+        s.style.width = size + "px";
+        s.style.height = size + "px";
+        const dur = 7 + Math.random()*10;
+        s.style.animationDuration = dur + "s";
+        s.style.animationDelay = (-Math.random()*dur) + "s";
+        s.style.setProperty("--dx", ((Math.random()*2-1) * 50) + "px");
+        sparks.appendChild(s);
+      }
+    }
+    function refreshFX(){
+      const low = window.innerWidth < 420;
+      makeRain(low ? 18 : 26);
+      makeSparks(low ? 10 : 16);
+    }
+    refreshFX();
+    window.addEventListener("resize", refreshFX);
+
+    window.addEventListener("pointermove", (e)=>{
+      const mx = (e.clientX / window.innerWidth - 0.5);
+      const my = (e.clientY / window.innerHeight - 0.5);
+      parallax.style.transform = `translate3d(${mx*10}px, ${my*9}px, 0)`;
+    }, {passive:true});
+
+    // Calculator
+    let state = {
+      power: true,
+      started: false,
+      shift: false,
+      alpha: false,
+      angle: "DEG",
+      vars: { x:0, y:0, z:0 }
+    };
+
+    const exprEl = $("#expr");
+    const resultEl = $("#result");
+    const bAngle = $("#bAngle");
+    const bShift = $("#bShift");
+    const bAlpha = $("#bAlpha");
+
+    function toRad(x){ return state.angle==="DEG" ? (x*Math.PI/180) : x; }
+    function fromRad(x){ return state.angle==="DEG" ? (x*180/Math.PI) : x; }
+
+    function safeEval(raw){
+      const input = String(raw??"").trim();
+      if(!input) return 0;
+      if (/[;{}[\]\\`]|=>|function|new |window|document|globalThis|import|eval/i.test(input)) {
+        throw new Error("Blocked");
+      }
+      let js = input;
+
+      js = js.replace(/\bpi\b/gi, "Math.PI");
+      js = js.replace(/\be\b/g, "Math.E");
+
+      js = js.replace(/\bx\b/g, `(${Number(state.vars.x)})`);
+      js = js.replace(/\by\b/g, `(${Number(state.vars.y)})`);
+      js = js.replace(/\bz\b/g, `(${Number(state.vars.z)})`);
+
+      const map = [
+        ["sin","sinA"],["cos","cosA"],["tan","tanA"],
+        ["asin","asinA"],["acos","acosA"],["atan","atanA"],
+        ["sqrt","Math.sqrt"],["abs","Math.abs"],["pow","Math.pow"],
+        ["log","log10"],["ln","Math.log"]
+      ];
+      for (const [k,v] of map) js = js.replace(new RegExp(`\\b${k}\\b`,"g"), v);
+
+      if (!/^[0-9+\-*/().,\sA-Za-z_]+$/.test(js)) throw new Error("Invalid");
+
+      const scope = {
+        sinA: (x)=>Math.sin(toRad(Number(x))),
+        cosA: (x)=>Math.cos(toRad(Number(x))),
+        tanA: (x)=>Math.tan(toRad(Number(x))),
+        asinA:(x)=>fromRad(Math.asin(Number(x))),
+        acosA:(x)=>fromRad(Math.acos(Number(x))),
+        atanA:(x)=>fromRad(Math.atan(Number(x))),
+        log10:(x)=>Math.log10(Number(x)),
+        Math
+      };
+      const f = Function(...Object.keys(scope), `"use strict"; return (${js});`);
+      return f(...Object.values(scope));
+    }
+
+    function renderBadges(){
+      bAngle.textContent = state.angle;
+      bShift.textContent = `SHIFT: ${state.shift ? "ON" : "OFF"}`;
+      bAlpha.textContent = `ALPHA: ${state.alpha ? "ON" : "OFF"}`;
+    }
+    function compute(){
+      if(!state.power) return;
+      if(!state.started){ resultEl.textContent = "Press START"; return; }
+      try{
+        const v = safeEval(exprEl.value);
+        resultEl.textContent = (Number.isFinite(v) ? String(v) : String(v));
+      }catch{
+        resultEl.textContent = "Error";
+      }
+    }
+
+    function insert(text){
+      if(!state.power || !state.started) return;
+      const el = exprEl;
+      const s = el.selectionStart ?? el.value.length;
+      const e = el.selectionEnd ?? el.value.length;
+      el.value = el.value.slice(0,s) + text + el.value.slice(e);
+      const p = s + text.length;
+      el.setSelectionRange(p,p);
+      el.focus();
+    }
+
+    function del(){
+      if(!state.power || !state.started) return;
+      const el = exprEl;
+      const s = el.selectionStart ?? 0;
+      const e = el.selectionEnd ?? 0;
+      if(s!==e){
+        el.value = el.value.slice(0,s) + el.value.slice(e);
+        el.setSelectionRange(s,s);
+        return;
+      }
+      if(s>0){
+        el.value = el.value.slice(0,s-1) + el.value.slice(s);
+        el.setSelectionRange(s-1,s-1);
+      }
+      el.focus();
+    }
+
+    // keypad (mobile minimal)
+    const KEYS = [
+      {t:"SHIFT", act:"shift", cls:"op"},
+      {t:"ALPHA", act:"alpha", cls:"op"},
+      {t:"(", ins:"(", cls:"op"},
+      {t:")", ins:")", cls:"op"},
+
+      {t:"sin", ins:"sin(", cls:"fn", s:"asin("},
+      {t:"cos", ins:"cos(", cls:"fn", s:"acos("},
+      {t:"tan", ins:"tan(", cls:"fn", s:"atan("},
+      {t:"log", ins:"log(", cls:"fn", s:"ln("},
+
+      {t:"7", ins:"7"}, {t:"8", ins:"8"}, {t:"9", ins:"9"}, {t:"÷", ins:"/", cls:"op"},
+      {t:"4", ins:"4"}, {t:"5", ins:"5"}, {t:"6", ins:"6"}, {t:"×", ins:"*", cls:"op"},
+      {t:"1", ins:"1"}, {t:"2", ins:"2"}, {t:"3", ins:"3"}, {t:"−", ins:"-", cls:"op"},
+
+      {t:"0", ins:"0"}, {t:".", ins:".", cls:"op"}, {t:"DEL", act:"del", cls:"bad"}, {t:"+", ins:"+", cls:"op"},
+      {t:"π", ins:"pi", cls:"fn", s:"e"},
+      {t:"pow", ins:"pow(", cls:"fn"},
+      {t:"AC", act:"ac", cls:"bad"},
+      {t:"=", act:"eq", cls:"eq"}
+    ];
+
+    const kbd = $("#kbd");
+    function renderKbd(){
+      kbd.innerHTML = KEYS.map((k,i)=> `<button class="key ${k.cls||""}" data-i="${i}">${k.t}</button>`).join("");
+      kbd.querySelectorAll("button").forEach(btn=>{
+        btn.onclick = ()=>{
+          const k = KEYS[Number(btn.dataset.i)];
+          if(k.act==="shift"){ state.shift=!state.shift; state.alpha=false; renderBadges(); return; }
+          if(k.act==="alpha"){ state.alpha=!state.alpha; state.shift=false; renderBadges(); return; }
+          if(k.act==="del"){ del(); return; }
+          if(k.act==="ac"){ exprEl.value=""; resultEl.textContent="0"; return; }
+          if(k.act==="eq"){ compute(); return; }
+
+          // alpha: x,y,z quick cycle
+          if(state.alpha){
+            // map some keys to vars
+            if(k.t==="7") return insert("x");
+            if(k.t==="8") return insert("y");
+            if(k.t==="9") return insert("z");
+            // otherwise normal
+          }
+
+          if(state.shift && k.s){ insert(k.s); state.shift=false; renderBadges(); return; }
+          insert(k.ins ?? "");
+        };
+      });
+    }
+
+    // Tool sheet
+    const sheet = $("#sheet");
+    $("#btnTool").onclick = ()=> sheet.classList.add("open");
+    $("#btnClose").onclick = ()=> sheet.classList.remove("open");
+    sheet.addEventListener("click", (e)=>{ if(e.target===sheet) sheet.classList.remove("open"); });
+
+    $("#btnDeg").onclick = ()=>{ state.angle="DEG"; renderBadges(); };
+    $("#btnRad").onclick = ()=>{ state.angle="RAD"; renderBadges(); };
+    $("#btnVars").onclick = ()=>{
+      const ask = (k)=> {
+        const v = prompt(`Set ${k}=`, String(state.vars[k]));
+        if(v!==null && v.trim()!=="") state.vars[k] = Number(v);
+      };
+      ["x","y","z"].forEach(ask);
+    };
+
+    // Start/Off
+    $("#btnStart").onclick = ()=>{
+      state.started = true;
+      resultEl.textContent = "0";
+      exprEl.focus();
+    };
+    $("#btnOff").onclick = ()=>{
+      state.power = !state.power;
+      if(!state.power){
+        resultEl.textContent = "OFF";
+        exprEl.value = "";
+      }else{
+        resultEl.textContent = state.started ? "0" : "Press START";
+      }
+    };
+
+    exprEl.addEventListener("keydown",(e)=>{
+      if(e.key==="Enter" && !e.ctrlKey){ e.preventDefault(); compute(); }
+    });
+
+    renderBadges();
+    renderKbd();
+  </script>
+</body>
+</html>
